@@ -137,7 +137,7 @@ class Unit < Numeric
     @@unit_match_regex = nil
     @@prefix_regex     = nil
 
-    @@definitions.each do |name, definition|
+    @@definitions.each do |_, definition|
       self.use_definition(definition)
     end
 
@@ -229,12 +229,6 @@ class Unit < Numeric
   # @return [Numeric]
   attr_accessor :base_scalar
 
-  # @return [Array]
-  attr_accessor :base_numerator
-
-  # @return [Array]
-  attr_accessor :base_denominator
-
   # @return [String]
   attr_accessor :output
 
@@ -259,7 +253,7 @@ class Unit < Numeric
     @signature   = from.signature
     @base_scalar = from.base_scalar
     @unit_name = from.unit_name rescue nil
-    return self
+    self
   end
 
   if RUBY_VERSION < "1.9"
@@ -351,11 +345,11 @@ class Unit < Numeric
         @numerator = @denominator = UNITY_ARRAY
       when Time
         @scalar      = options[0].to_f
-        @numerator   = ['<second>']
+        @numerator   = %w(<second>)
         @denominator = UNITY_ARRAY
       when DateTime, Date
         @scalar      = options[0].ajd
-        @numerator   = ['<day>']
+        @numerator   = %w(<day>)
         @denominator = UNITY_ARRAY
       when /^\s*$/
         raise ArgumentError, "No Unit Specified"
@@ -368,7 +362,7 @@ class Unit < Numeric
     raise ArgumentError, "Temperatures must not be less than absolute zero" if self.is_temperature? && self.base_scalar < 0
     unary_unit = self.units || ""
     if options.first.instance_of?(String)
-      opt_scalar, opt_units = Unit.parse_into_numbers_and_units(options[0])
+      _, opt_units = Unit.parse_into_numbers_and_units(options[0])
       unless @@cached_units.keys.include?(opt_units) || (opt_units =~ /(#{Unit.temp_regex})|(pounds|lbs[ ,]\d+ ounces|oz)|('\d+")|(ft|feet[ ,]\d+ in|inch|inches)|%|(#{TIME_REGEX})|i\s?(.+)?|&plusmn;|\+\/-/)
         @@cached_units[opt_units] = (self.scalar == 1 ? self : opt_units.unit) if opt_units && !opt_units.empty?
       end
@@ -377,14 +371,14 @@ class Unit < Numeric
       @@cached_units[unary_unit] = (self.scalar == 1 ? self : unary_unit.unit)
     end
     [@scalar, @numerator, @denominator, @base_scalar, @signature, @is_base].each { |x| x.freeze }
-    return self
+    self
   end
 
   # @todo: figure out how to handle :counting units.  This method should probably return :counting instead of :unitless for 'each'
   # return the kind of the unit (:mass, :length, etc...)
   # @return [Symbol]
   def kind
-    return @@kinds[self.signature]
+    @@kinds[self.signature]
   end
 
   # @private
@@ -431,7 +425,6 @@ class Unit < Numeric
     @is_base = (@numerator + @denominator).compact.uniq.
         map { |unit| Unit.definition(unit) }.
         all? { |element| element.unity? || element.base? }
-    return @is_base
   end
 
   alias :base? :is_base?
@@ -452,13 +445,14 @@ class Unit < Numeric
         @signature = @@kinds.key(:temperature)
         #:nocov:
       end
-      base = case
-               when self.is_temperature?
-                 self.convert_to('tempK')
-               when self.is_degree?
-                 self.convert_to('degK')
-             end
-      return base
+      case
+        when self.is_temperature?
+          return self.convert_to('tempK')
+        when self.is_degree?
+          return self.convert_to('degK')
+        else
+          raise RuntimeError
+      end
     end
 
     cached = ((@@base_unit_cache[self.units] * self.scalar) rescue nil)
@@ -467,7 +461,7 @@ class Unit < Numeric
     num = []
     den = []
     q   = 1
-    for unit in @numerator.compact do
+    @numerator.compact.each do |unit|
       if @@prefix_values[unit]
         q *= @@prefix_values[unit]
       else
@@ -476,7 +470,7 @@ class Unit < Numeric
         den << @@unit_values[unit][:denominator] if @@unit_values[unit] && @@unit_values[unit][:denominator]
       end
     end
-    for unit in @denominator.compact do
+    @denominator.compact.each do |unit|
       if @@prefix_values[unit]
         q /= @@prefix_values[unit]
       else
@@ -491,7 +485,7 @@ class Unit < Numeric
     num = UNITY_ARRAY if num.empty?
     base                         = Unit.new(Unit.eliminate_terms(q, num, den))
     @@base_unit_cache[self.units]=base
-    return base * @scalar
+    base * @scalar
   end
 
   alias :base :to_base
@@ -514,7 +508,7 @@ class Unit < Numeric
   def to_s(target_units=nil)
     out = @output[target_units]
     if out
-      return out
+      out
     else
       case target_units
         when :ft
@@ -549,7 +543,7 @@ class Unit < Numeric
                 end.strip
       end
       @output[target_units] = out
-      return out
+      out
     end
   end
 
@@ -558,14 +552,14 @@ class Unit < Numeric
   # @return [String]
   def inspect(option=nil)
     return super() if option == :dump
-    return self.to_s
+    self.to_s
   end
 
   # true if unit is a 'temperature', false if a 'degree' or anything else
   # @return [Boolean]
   # @todo use unit definition to determine if it's a temperature instead of a regex
   def is_temperature?
-    return self.is_degree? && (!(@@unit_map[self.units] =~ /temp[CFRK]/).nil?)
+    self.is_degree? && (!(@@unit_map[self.units] =~ /temp[CFRK]/).nil?)
   end
 
   alias :temperature? :is_temperature?
@@ -573,7 +567,7 @@ class Unit < Numeric
   # true if a degree unit or equivalent.
   # @return [Boolean]
   def is_degree?
-    return self.kind == :temperature
+    self.kind == :temperature
   end
 
   alias :degree? :is_degree?
@@ -583,14 +577,14 @@ class Unit < Numeric
   # @return [String] possible values: degC, degF, degR, or degK
   def temperature_scale
     return nil unless self.is_temperature?
-    return "deg#{@@unit_map[self.units][/temp([CFRK])/,1]}"
+    "deg#{@@unit_map[self.units][/temp([CFRK])/,1]}"
   end
 
   # returns true if no associated units
   # false, even if the units are "unitless" like 'radians, each, etc'
   # @return [Boolean]
   def unitless?
-    return(@numerator == UNITY_ARRAY && @denominator == UNITY_ARRAY)
+    @numerator == UNITY_ARRAY && @denominator == UNITY_ARRAY
   end
 
   # Compare two Unit objects. Throws an exception if they are not of compatible types.
@@ -744,7 +738,7 @@ class Unit < Numeric
               when [self, other].all? { |x| x.is_temperature? }
                 Unit.new(:scalar => (self.base_scalar - other.base_scalar), :numerator => KELVIN, :denominator => UNITY_ARRAY, :signature => @signature).convert_to(self.temperature_scale)
               when self.is_temperature?
-                Unit.new(:scalar => (self.base_scalar - other.base_scalar), :numerator => ['<tempK>'], :denominator => UNITY_ARRAY, :signature => @signature).convert_to(self)
+                Unit.new(:scalar => (self.base_scalar - other.base_scalar), :numerator => %w(<tempK>), :denominator => UNITY_ARRAY, :signature => @signature).convert_to(self)
               when other.is_temperature?
                 raise ArgumentError, "Cannot subtract a temperature from a differential degree unit"
               else
@@ -812,9 +806,9 @@ class Unit < Numeric
   def divmod(other)
     raise ArgumentError, "Incompatible Units" unless self =~ other
     if self.units == other.units
-      return self.scalar.divmod(other.scalar)
+      self.scalar.divmod(other.scalar)
     else
-      return self.to_base.scalar.divmod(other.to_base.scalar)
+      self.to_base.scalar.divmod(other.to_base.scalar)
     end
   end
 
@@ -822,7 +816,7 @@ class Unit < Numeric
   # @param [Object] other
   # @return [Integer]
   def %(other)
-    return self.divmod(other).last
+    self.divmod(other).last
   end
 
   # Exponentiate.  Only takes integer powers.
@@ -875,9 +869,9 @@ class Unit < Numeric
     return 1 if n.zero?
     return self if n == 1
     if n > 0 then
-      return (1..(n-1).to_i).inject(self) { |product, x| product * self }
+      (1..(n-1).to_i).inject(self) { |product, _| product * self }
     else
-      return (1..-(n-1).to_i).inject(self) { |product, x| product / self }
+      (1..-(n-1).to_i).inject(self) { |product, x| product / self }
     end
   end
 
@@ -901,25 +895,25 @@ class Unit < Numeric
     num = @numerator.dup
     den = @denominator.dup
 
-    for item in @numerator.uniq do
+    @numerator.uniq.each do |item|
       x = num.find_all { |i| i==item }.size
       r = ((x/n)*(n-1)).to_int
-      r.times { |y| num.delete_at(num.index(item)) }
+      r.times { num.delete_at(num.index(item)) }
     end
 
-    for item in @denominator.uniq do
+    @denominator.uniq.each do |item|
       x = den.find_all { |i| i==item }.size
       r = ((x/n)*(n-1)).to_int
-      r.times { |y| den.delete_at(den.index(item)) }
+      r.times { den.delete_at(den.index(item)) }
     end
     q = @scalar < 0 ? (-1)**Rational(1, n) * (@scalar.abs)**Rational(1, n) : @scalar**Rational(1, n)
-    return Unit.new(:scalar => q, :numerator => num, :denominator => den)
+    Unit.new(:scalar => q, :numerator => num, :denominator => den)
   end
 
   # returns inverse of Unit (1/unit)
   # @return [Unit]
   def inverse
-    return Unit("1") / self
+    Unit("1") / self
   end
 
   # convert to a specified unit string or to the same units as another Unit
@@ -951,15 +945,17 @@ class Unit < Numeric
       target_unit = other.units rescue other
       unless @base_scalar
         @base_scalar = case @@unit_map[start_unit]
-        when '<tempC>'
-          @scalar + 273.15
-        when '<tempK>'
-          @scalar
-        when '<tempF>'
-          (@scalar+459.67)*Rational(5,9)
-        when '<tempR>'
-          @scalar*Rational(5,9)
-        end
+                         when '<tempC>'
+                           @scalar + 273.15
+                         when '<tempK>'
+                           @scalar
+                         when '<tempF>'
+                           (@scalar+459.67)*Rational(5,9)
+                         when '<tempR>'
+                           @scalar*Rational(5,9)
+                         else
+                           raise RuntimeError, "Unknown Temperature"
+                      end
       end
       q=  case @@unit_map[target_unit]
       when '<tempC>'
@@ -970,6 +966,8 @@ class Unit < Numeric
         @base_scalar * Rational(9,5) - 459.67
       when '<tempR>'
         @base_scalar * Rational(9,5)
+      else
+        raise RuntimeError, "Unknown Temperature"
       end
       return Unit.new("#{q} #{target_unit}")
     else
@@ -990,7 +988,7 @@ class Unit < Numeric
 
       q = @scalar * ((_numerator1 + _denominator2).inject(1) { |product, n| product*n }) /
           ((_numerator2 + _denominator1).inject(1) { |product, n| product*n })
-      return Unit.new(:scalar => q, :numerator => target.numerator, :denominator => target.denominator, :signature => target.signature)
+      Unit.new(:scalar => q, :numerator => target.numerator, :denominator => target.denominator, :signature => target.signature)
     end
   end
 
@@ -1073,46 +1071,46 @@ class Unit < Numeric
         map { |element, power| ("#{element}".strip + (power > 1 ? "^#{power}" : '')) }
     out = "#{on.join('*')}#{od.empty? ? '' : '/' + od.join('*')}".strip
     @unit_name = out unless self.kind == :temperature
-    return out
+    out
   end
 
   # negates the scalar of the Unit
   # @return [Numeric,Unit]
   def -@
     return -@scalar if self.unitless?
-    return (self.dup * -1)
+    (self.dup * -1)
   end
 
   # absolute value of a unit
   # @return [Numeric,Unit]
   def abs
     return @scalar.abs if self.unitless?
-    return Unit.new(@scalar.abs, @numerator, @denominator)
+    Unit.new(@scalar.abs, @numerator, @denominator)
   end
 
   # ceil of a unit
   # @return [Numeric,Unit]
   def ceil
     return @scalar.ceil if self.unitless?
-    return Unit.new(@scalar.ceil, @numerator, @denominator)
+    Unit.new(@scalar.ceil, @numerator, @denominator)
   end
 
   # @return [Numeric,Unit]
   def floor
     return @scalar.floor if self.unitless?
-    return Unit.new(@scalar.floor, @numerator, @denominator)
+    Unit.new(@scalar.floor, @numerator, @denominator)
   end
 
   # @return [Numeric,Unit]
   def round
     return @scalar.round if self.unitless?
-    return Unit.new(@scalar.round, @numerator, @denominator)
+    Unit.new(@scalar.round, @numerator, @denominator)
   end
 
   # @return [Numeric, Unit]
   def truncate
     return @scalar.truncate if self.unitless?
-    return Unit.new(@scalar.truncate, @numerator, @denominator)
+    Unit.new(@scalar.truncate, @numerator, @denominator)
   end
 
   # returns next unit in a range.  '1 mm'.unit.succ #=> '2 mm'.unit
@@ -1121,7 +1119,7 @@ class Unit < Numeric
   # @raise [ArgumentError] when scalar is not equal to an integer
   def succ
     raise ArgumentError, "Non Integer Scalar" unless @scalar == @scalar.to_i
-    return Unit.new(@scalar.to_i.succ, @numerator, @denominator)
+    Unit.new(@scalar.to_i.succ, @numerator, @denominator)
   end
 
   alias :next :succ
@@ -1132,13 +1130,13 @@ class Unit < Numeric
   # @raise [ArgumentError] when scalar is not equal to an integer
   def pred
     raise ArgumentError, "Non Integer Scalar" unless @scalar == @scalar.to_i
-    return Unit.new(@scalar.to_i.pred, @numerator, @denominator)
+    Unit.new(@scalar.to_i.pred, @numerator, @denominator)
   end
 
   # Tries to make a Time object from current unit.  Assumes the current unit hold the duration in seconds from the epoch.
   # @return [Time]
   def to_time
-    return Time.at(self)
+    Time.at(self)
   end
 
   alias :time :to_time
@@ -1147,24 +1145,24 @@ class Unit < Numeric
   # defined by DateTime
   # @return [DateTime]
   def to_datetime
-    return DateTime.new!(self.convert_to('d').scalar)
+    DateTime.new!(self.convert_to('d').scalar)
   end
 
   # @return [Date]
   def to_date
-    return Date.new0(self.convert_to('d').scalar)
+    Date.new0(self.convert_to('d').scalar)
   end
 
   # true if scalar is zero
   # @return [Boolean]
   def zero?
-    return self.base_scalar.zero?
+    self.base_scalar.zero?
   end
 
   # @example '5 min'.unit.ago
   # @return [Unit]
   def ago
-    return self.before
+    self.before
   end
 
   # @example '5 min'.before(time)
@@ -1274,7 +1272,7 @@ class Unit < Numeric
       vector[index] -= 1 if index
     end
     raise ArgumentError, "Power out of range (-20 < net power of a unit < 20)" if vector.any? { |x| x.abs >=20 }
-    return vector
+    vector
   end
 
   private
@@ -1298,7 +1296,6 @@ class Unit < Numeric
     vector = unit_signature_vector
     vector.each_with_index { |item, index| vector[index] = item * 20**index }
     @signature=vector.inject(0) { |sum, n| sum+n }
-    return @signature
   end
 
   # @param [Numeric] q quantity
@@ -1341,7 +1338,7 @@ class Unit < Numeric
 
     num = []
     den = []
-    for key, value in combined do
+    combined.each do |key, value|
       case
         when value > 0
           value.times { num << key }
@@ -1429,7 +1426,7 @@ class Unit < Numeric
     # Special processing for unusual unit strings
     # feet -- 6'5"
     feet, inches = unit_string.scan(FEET_INCH_REGEX)[0]
-    if (feet && inches)
+    if feet && inches
       result = Unit.new("#{feet} ft") + Unit.new("#{inches} inches")
       copy(result)
       return
@@ -1437,7 +1434,7 @@ class Unit < Numeric
 
     # weight -- 8 lbs 12 oz
     pounds, oz = unit_string.scan(LBS_OZ_REGEX)[0]
-    if (pounds && oz)
+    if pounds && oz
       result = Unit.new("#{pounds} lbs") + Unit.new("#{oz} oz")
       copy(result)
       return
@@ -1451,13 +1448,13 @@ class Unit < Numeric
       n = item[1].to_i
       x = "#{item[0]} "
       case
-        when n>=0
-          top.gsub!(/#{item[0]}(\^|\*\*)#{n}/) { |s| x * n }
-        when n<0
+        when n >= 0
+          top.gsub!(/#{item[0]}(\^|\*\*)#{n}/) { x * n }
+        when n < 0
           bottom = "#{bottom} #{x * -n}"; top.gsub!(/#{item[0]}(\^|\*\*)#{n}/, "")
       end
     end
-    bottom.gsub!(BOTTOM_REGEX) { |s| "#{$1} " * $2.to_i } if bottom
+    bottom.gsub!(BOTTOM_REGEX) { "#{$1} " * $2.to_i } if bottom
     @scalar = @scalar.to_f unless @scalar.nil? || @scalar.empty?
     @scalar = 1 unless @scalar.kind_of? Numeric
     @scalar = @scalar.to_int if (@scalar.to_int == @scalar)
@@ -1482,7 +1479,7 @@ class Unit < Numeric
 
     @numerator = UNITY_ARRAY if @numerator.empty?
     @denominator = UNITY_ARRAY if @denominator.empty?
-    return self
+    self
   end
 
   # return an array of base units
