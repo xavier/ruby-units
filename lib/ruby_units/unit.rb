@@ -27,19 +27,18 @@ end
 #    unit.definition = Unit("1 baz")
 #  end
 #
-# @todo fix class variables so they conform to standard naming conventions and refactor away as many of them as possible
 # @todo pull caching out into its own class
 # @todo refactor internal representation of units
 # @todo method to determine best natural prefix
 class Unit < Numeric
   VERSION            = Unit::Version::STRING
   @@definitions      = {}
-  @@PREFIX_VALUES    = {}
-  @@PREFIX_MAP       = {}
-  @@UNIT_MAP         = {}
-  @@UNIT_VALUES      = {}
-  @@UNIT_REGEX       = nil
-  @@UNIT_MATCH_REGEX = nil
+  @@prefix_values    = {}
+  @@prefix_map       = {}
+  @@unit_map         = {}
+  @@unit_values      = {}
+  @@unit_regex       = nil
+  @@unit_match_regex = nil
   UNITY              = '<1>'
   UNITY_ARRAY        = [UNITY]
   FEET_INCH_REGEX    = /(\d+)\s*(?:'|ft|feet)\s*(\d+)\s*(?:"|in|inches)/
@@ -55,11 +54,11 @@ class Unit < Numeric
   UNCERTAIN_REGEX    = /#{SCI_NUMBER}\s*\+\/-\s*#{SCI_NUMBER}\s(.+)/
   COMPLEX_REGEX      = /#{COMPLEX_NUMBER}\s?(.+)?/
   RATIONAL_REGEX     = /#{RATIONAL_NUMBER}\s?(.+)?/
-  KELVIN             = ['<kelvin>']
-  FAHRENHEIT         = ['<fahrenheit>']
-  RANKINE            = ['<rankine>']
-  CELSIUS            = ['<celsius>']
   @@TEMP_REGEX       = nil
+  KELVIN             = %w(<kelvin>)
+  FAHRENHEIT         = %w(<fahrenheit>)
+  RANKINE            = %w(<rankine>)
+  CELSIUS            = %w(<celsius>)
   SIGNATURE_VECTOR = [
                       :length,
                       :time,
@@ -72,7 +71,7 @@ class Unit < Numeric
                       :memory,
                       :angle
                       ]
-  @@KINDS = {
+  @@kinds = {
     -312078       =>  :elastance,
     -312058       =>  :resistance,
     -312038       =>  :inductance,
@@ -129,13 +128,13 @@ class Unit < Numeric
   # @return [true]
   def self.setup
     self.clear_cache
-    @@PREFIX_VALUES    = {}
-    @@PREFIX_MAP       = {}
-    @@UNIT_VALUES      = {}
-    @@UNIT_MAP         = {}
-    @@UNIT_REGEX       = nil
-    @@UNIT_MATCH_REGEX = nil
-    @@PREFIX_REGEX     = nil
+    @@prefix_values    = {}
+    @@prefix_map       = {}
+    @@unit_values      = {}
+    @@unit_map         = {}
+    @@unit_regex       = nil
+    @@unit_match_regex = nil
+    @@prefix_regex     = nil
 
     @@definitions.each do |name, definition|
       self.use_definition(definition)
@@ -150,7 +149,7 @@ class Unit < Numeric
   # @param [String] unit
   # @return [Boolean]
   def self.defined?(unit)
-    return @@UNIT_VALUES.keys.include?("<#{unit}>")
+    return @@unit_values.keys.include?("<#{unit}>")
   end
   
   # return the unit definition for a unit
@@ -249,7 +248,7 @@ class Unit < Numeric
   end
 
   # Used to copy one unit to another
-  # @param [Unit] from Unit to copy defintion from
+  # @param [Unit] from Unit to copy definition from
   # @return [Unit]
   def copy(from)
     @scalar      = from.scalar
@@ -384,7 +383,7 @@ class Unit < Numeric
   # return the kind of the unit (:mass, :length, etc...)
   # @return [Symbol]
   def kind
-    return @@KINDS[self.signature]
+    return @@kinds[self.signature]
   end
 
   # @private
@@ -440,14 +439,14 @@ class Unit < Numeric
   # @todo this is brittle as it depends on the display_name of a unit, which can be changed
   def to_base
     return self if self.is_base?
-    if @@UNIT_MAP[self.units] =~ /\A<(?:temp|deg)[CRF]>\Z/
+    if @@unit_map[self.units] =~ /\A<(?:temp|deg)[CRF]>\Z/
       if RUBY_VERSION < "1.9"
         # :nocov_19:
-        @signature = @@KINDS.index(:temperature)
+        @signature = @@kinds.index(:temperature)
         # :nocov_19:
       else
         #:nocov:
-        @signature = @@KINDS.key(:temperature)
+        @signature = @@kinds.key(:temperature)
         #:nocov:
       end
       base = case
@@ -466,21 +465,21 @@ class Unit < Numeric
     den = []
     q = 1
     for unit in @numerator.compact do
-      if @@PREFIX_VALUES[unit]
-        q *= @@PREFIX_VALUES[unit]
+      if @@prefix_values[unit]
+        q *= @@prefix_values[unit]
       else
-        q *= @@UNIT_VALUES[unit][:scalar] if @@UNIT_VALUES[unit]
-        num << @@UNIT_VALUES[unit][:numerator] if @@UNIT_VALUES[unit] && @@UNIT_VALUES[unit][:numerator]
-        den << @@UNIT_VALUES[unit][:denominator] if @@UNIT_VALUES[unit] && @@UNIT_VALUES[unit][:denominator]
+        q *= @@unit_values[unit][:scalar] if @@unit_values[unit]
+        num << @@unit_values[unit][:numerator] if @@unit_values[unit] && @@unit_values[unit][:numerator]
+        den << @@unit_values[unit][:denominator] if @@unit_values[unit] && @@unit_values[unit][:denominator]
       end
     end
     for unit in @denominator.compact do
-      if @@PREFIX_VALUES[unit]
-        q /= @@PREFIX_VALUES[unit]
+      if @@prefix_values[unit]
+        q /= @@prefix_values[unit]
       else
-        q /= @@UNIT_VALUES[unit][:scalar] if @@UNIT_VALUES[unit]
-        den << @@UNIT_VALUES[unit][:numerator] if @@UNIT_VALUES[unit] && @@UNIT_VALUES[unit][:numerator]
-        num << @@UNIT_VALUES[unit][:denominator] if @@UNIT_VALUES[unit] && @@UNIT_VALUES[unit][:denominator]
+        q /= @@unit_values[unit][:scalar] if @@unit_values[unit]
+        den << @@unit_values[unit][:numerator] if @@unit_values[unit] && @@unit_values[unit][:numerator]
+        num << @@unit_values[unit][:denominator] if @@unit_values[unit] && @@unit_values[unit][:denominator]
       end
     end
 
@@ -562,7 +561,7 @@ class Unit < Numeric
   # @return [Boolean]
   # @todo use unit definition to determine if it's a temperature instead of a regex
   def is_temperature?
-    return self.is_degree? && (!(@@UNIT_MAP[self.units] =~ /temp[CFRK]/).nil?)
+    return self.is_degree? && (!(@@unit_map[self.units] =~ /temp[CFRK]/).nil?)
   end
   alias :temperature? :is_temperature?
 
@@ -578,7 +577,7 @@ class Unit < Numeric
   # @return [String] possible values: degC, degF, degR, or degK
   def temperature_scale
     return nil unless self.is_temperature?
-    return "deg#{@@UNIT_MAP[self.units][/temp([CFRK])/,1]}"
+    return "deg#{@@unit_map[self.units][/temp([CFRK])/,1]}"
   end
 
   # returns true if no associated units
@@ -945,7 +944,7 @@ class Unit < Numeric
       start_unit = self.units
       target_unit = other.units rescue other
       unless @base_scalar
-        @base_scalar = case @@UNIT_MAP[start_unit]
+        @base_scalar = case @@unit_map[start_unit]
         when '<tempC>'
           @scalar + 273.15
         when '<tempK>'
@@ -956,7 +955,7 @@ class Unit < Numeric
           @scalar*Rational(5,9)
         end
       end
-      q=  case @@UNIT_MAP[target_unit]
+      q=  case @@unit_map[target_unit]
       when '<tempC>'
         @base_scalar - 273.15
       when '<tempK>'
@@ -978,10 +977,10 @@ class Unit < Numeric
         raise ArgumentError, "Unknown target units"
       end
       raise ArgumentError,  "Incompatible Units" unless self =~ target
-      _numerator1 = @numerator.map {|x| @@PREFIX_VALUES[x] ? @@PREFIX_VALUES[x] : x}.map {|i| i.kind_of?(Numeric) ? i : @@UNIT_VALUES[i][:scalar] }.compact
-      _denominator1 = @denominator.map {|x| @@PREFIX_VALUES[x] ? @@PREFIX_VALUES[x] : x}.map {|i| i.kind_of?(Numeric) ? i : @@UNIT_VALUES[i][:scalar] }.compact
-      _numerator2 = target.numerator.map {|x| @@PREFIX_VALUES[x] ? @@PREFIX_VALUES[x] : x}.map {|x| x.kind_of?(Numeric) ? x : @@UNIT_VALUES[x][:scalar] }.compact
-      _denominator2 = target.denominator.map {|x| @@PREFIX_VALUES[x] ? @@PREFIX_VALUES[x] : x}.map {|x| x.kind_of?(Numeric) ? x : @@UNIT_VALUES[x][:scalar] }.compact
+      _numerator1 = @numerator.map {|x| @@prefix_values[x] ? @@prefix_values[x] : x}.map {|i| i.kind_of?(Numeric) ? i : @@unit_values[i][:scalar] }.compact
+      _denominator1 = @denominator.map {|x| @@prefix_values[x] ? @@prefix_values[x] : x}.map {|i| i.kind_of?(Numeric) ? i : @@unit_values[i][:scalar] }.compact
+      _numerator2 = target.numerator.map {|x| @@prefix_values[x] ? @@prefix_values[x] : x}.map {|x| x.kind_of?(Numeric) ? x : @@unit_values[x][:scalar] }.compact
+      _denominator2 = target.denominator.map {|x| @@prefix_values[x] ? @@prefix_values[x] : x}.map {|x| x.kind_of?(Numeric) ? x : @@unit_values[x][:scalar] }.compact
 
       q = @scalar * ( (_numerator1 + _denominator2).inject(1) {|product,n| product*n} ) /
           ( (_numerator2 + _denominator1).inject(1) {|product,n| product*n} )
@@ -1305,7 +1304,7 @@ class Unit < Numeric
     i = 0
     loop do
       break if i > num.size
-      if @@PREFIX_VALUES.has_key? num[i]
+      if @@prefix_values.has_key? num[i]
         k = [num[i],num[i+1]]
         i += 2
       else
@@ -1318,7 +1317,7 @@ class Unit < Numeric
     j = 0
     loop do
       break if j > den.size
-        if @@PREFIX_VALUES.has_key? den[j]
+        if @@prefix_values.has_key? den[j]
           k = [den[j],den[j+1]]
           j += 2
         else
@@ -1401,7 +1400,7 @@ class Unit < Numeric
       @base_scalar *= mult
       return self
     end
-    unit_string.gsub!(/<(#{@@UNIT_REGEX})><(#{@@UNIT_REGEX})>/, '\1*\2')
+    unit_string.gsub!(/<(#{@@unit_regex})><(#{@@unit_regex})>/, '\1*\2')
     unit_string.gsub!(/[<>]/,"")
 
     if unit_string =~ /:/
@@ -1462,11 +1461,11 @@ class Unit < Numeric
     raise( ArgumentError, "'#{passed_unit_string}' Unit not recognized") unless used.empty?
 
     @numerator = @numerator.map do |item|
-       @@PREFIX_MAP[item[0]] ? [@@PREFIX_MAP[item[0]], @@UNIT_MAP[item[1]]] : [@@UNIT_MAP[item[1]]]
+       @@prefix_map[item[0]] ? [@@prefix_map[item[0]], @@unit_map[item[1]]] : [@@unit_map[item[1]]]
     end.flatten.compact.delete_if {|x| x.empty?}
 
     @denominator = @denominator.map do |item|
-       @@PREFIX_MAP[item[0]] ? [@@PREFIX_MAP[item[0]], @@UNIT_MAP[item[1]]] : [@@UNIT_MAP[item[1]]]
+       @@prefix_map[item[0]] ? [@@prefix_map[item[0]], @@unit_map[item[1]]] : [@@unit_map[item[1]]]
     end.flatten.compact.delete_if {|x| x.empty?}
 
     @numerator = UNITY_ARRAY if @numerator.empty?
@@ -1519,21 +1518,21 @@ class Unit < Numeric
   # @return [String]
   # @private
   def self.unit_regex
-    @@UNIT_REGEX ||= @@UNIT_MAP.keys.sort_by {|unit_name| [unit_name.length, unit_name]}.reverse.join('|')
+    @@unit_regex ||= @@unit_map.keys.sort_by {|unit_name| [unit_name.length, unit_name]}.reverse.join('|')
   end
   
   # return a regex used to match units
   # @return [RegExp]
   # @private
   def self.unit_match_regex
-    @@UNIT_MATCH_REGEX ||= /(#{Unit.prefix_regex})*?(#{Unit.unit_regex})\b/
+    @@unit_match_regex ||= /(#{Unit.prefix_regex})*?(#{Unit.unit_regex})\b/
   end
 
   # return a regexp fragment used to match prefixes
   # @return [String]
   # @private
   def self.prefix_regex
-    return @@PREFIX_REGEX ||= @@PREFIX_MAP.keys.sort_by {|prefix| [prefix.length, prefix]}.reverse.join('|')
+    return @@prefix_regex ||= @@prefix_map.keys.sort_by {|prefix| [prefix.length, prefix]}.reverse.join('|')
   end
   
   def self.temp_regex
@@ -1548,19 +1547,19 @@ class Unit < Numeric
   # inject a definition into the internal array and set it up for use
   # @private
   def self.use_definition(definition)
-    @@UNIT_MATCH_REGEX = nil #invalidate the unit match regex
     @@TEMP_REGEX = nil #invalidate the temp regex
+    @@unit_match_regex = nil #invalidate the unit match regex
     if definition.prefix?
-      @@PREFIX_VALUES[definition.name] = definition.scalar
-      definition.aliases.each {|_alias| @@PREFIX_MAP[_alias] = definition.name }
-      @@PREFIX_REGEX = nil  #invalidate the prefix regex
+      @@prefix_values[definition.name] = definition.scalar
+      definition.aliases.each {|_alias| @@prefix_map[_alias] = definition.name }
+      @@prefix_regex = nil  #invalidate the prefix regex
     else
-      @@UNIT_VALUES[definition.name]                = {}
-      @@UNIT_VALUES[definition.name][:scalar]       = definition.scalar
-      @@UNIT_VALUES[definition.name][:numerator]    = definition.numerator if definition.numerator
-      @@UNIT_VALUES[definition.name][:denominator]  = definition.denominator if definition.denominator
-      definition.aliases.each {|_alias| @@UNIT_MAP[_alias] = definition.name}
-      @@UNIT_REGEX    = nil #invalidate the unit regex
+      @@unit_values[definition.name]                = {}
+      @@unit_values[definition.name][:scalar]       = definition.scalar
+      @@unit_values[definition.name][:numerator]    = definition.numerator if definition.numerator
+      @@unit_values[definition.name][:denominator]  = definition.denominator if definition.denominator
+      definition.aliases.each {|_alias| @@unit_map[_alias] = definition.name}
+      @@unit_regex    = nil #invalidate the unit regex
     end
   end
   
