@@ -51,10 +51,13 @@ Unit.define("kelvin") do |unit|
 end
 
 Unit.define("tempK") do |unit|
-  unit.scalar    = 1
-  unit.numerator = %w{<tempK>}
-  unit.aliases   = %w{tempK}
-  unit.kind      = :temperature
+  unit.scalar            = 1
+  unit.numerator         = %w{<tempK>}
+  unit.aliases           = %w{tempK}
+  unit.kind              = :temperature
+  unit.temperature_scale = 'kelvin'
+  unit.to_base   = lambda {|scalar| scalar}
+  unit.from_base = lambda {|scalar| scalar}
 end
 
 Unit.define("byte") do |unit|

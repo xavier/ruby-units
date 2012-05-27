@@ -282,7 +282,7 @@ Unit.define('gee') do |gee|
   gee.aliases       = %w{gee standard-gravitation}
 end
 
-# temperature differences
+# force
 
 Unit.define('newton') do |newton|
   newton.definition = Unit('1 kg*m/s^2')
@@ -304,6 +304,8 @@ Unit.define('poundal') do |poundal|
   poundal.aliases     = %w{pdl poundal poundals}
 end
 
+# temperature
+
 temp_convert_factor = Rational(2501999792983609,4503599627370496) # approximates 1/1.8
 
 Unit.define('celsius') do |celsius|
@@ -323,14 +325,23 @@ end
 
 Unit.define('tempC') do |tempC|
   tempC.definition  = Unit('1 tempK')
+  tempC.temperature_scale = 'celsius'
+  tempC.to_base   = lambda {|scalar| scalar + 273.15 }
+  tempC.from_base = lambda {|scalar| scalar - 273.15 }
 end
 
 Unit.define('tempF') do |tempF|
   tempF.definition  = Unit(temp_convert_factor, 'tempK')
+  tempF.temperature_scale = 'fahrenheit'
+  tempF.to_base   = lambda {|scalar| (scalar+459.67)*Rational(5,9) }
+  tempF.from_base = lambda {|scalar| (scalar * Rational(9,5) - 459.67)}
 end
 
 Unit.define('tempR') do |tempR|
   tempR.definition  = Unit('1 tempF')
+  tempR.temperature_scale = 'rankine'
+  tempR.to_base   = lambda {|scalar| scalar*Rational(5,9)}
+  tempR.from_base = lambda {|scalar| scalar*Rational(9,5) }
 end
 
 # astronomy

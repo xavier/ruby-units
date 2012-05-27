@@ -26,25 +26,24 @@ describe 'temperatures' do
     
     after(:all) do
       #define the temp units back to normal
-      Unit.define("tempK") do |unit|
-        unit.scalar    = 1
-        unit.numerator = %w{<tempK>}
+      Unit.redefine!("tempK") do |unit|
         unit.aliases   = %w{tempK}
-        unit.kind      = :temperature
+        unit.display_name = "tempK"
       end
       
-      Unit.define('tempC') do |tempC|
-        tempC.definition  = Unit('1 tempK')
-      end
-      
-      temp_convert_factor = Rational(2501999792983609,4503599627370496) # approximates 1/1.8
-      
-      Unit.define('tempF') do |tempF|
-        tempF.definition  = Unit(temp_convert_factor, 'tempK')
+      Unit.redefine!('tempC') do |tempC|
+        tempC.aliases = %w{tempC}
+        tempC.display_name = "tempC"
       end
 
-      Unit.define('tempR') do |tempR|
-        tempR.definition  = Unit('1 tempF')
+      Unit.redefine!('tempF') do |tempF|
+        tempF.aliases = %w{tempF}
+        tempF.display_name = "tempF"
+      end
+
+      Unit.redefine!('tempR') do |tempR|
+        tempR.aliases = %w{tempR}
+        tempR.display_name = "tempR"
       end
     end
     
