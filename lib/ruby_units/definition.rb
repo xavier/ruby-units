@@ -21,6 +21,13 @@ class Unit < Numeric
     # @return [String]
     attr_accessor :display_name
     
+    # @return [String]
+    attr_accessor :temperature_scale
+    
+    attr_accessor :to_base
+    
+    attr_accessor :from_base
+    
     # @example Raw definition from a hash
     #   Unit::Definition.new("rack-unit",[%w{U rack-U}, (6405920109971793/144115188075855872), :length, %w{<meter>} ])
     # 
