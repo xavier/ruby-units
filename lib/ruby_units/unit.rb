@@ -60,66 +60,66 @@ class Unit < Numeric
   CELSIUS            = %w(<celsius>)
 
   SIGNATURE_VECTOR  = [
-      :length,
-      :time,
-      :temperature,
-      :mass,
-      :current,
-      :substance,
-      :luminosity,
-      :currency,
-      :memory,
-      :angle
+    :length,
+    :time,
+    :temperature,
+    :mass,
+    :current,
+    :substance,
+    :luminosity,
+    :currency,
+    :memory,
+    :angle
   ]
   @@kinds           = {
-      -312078      => :elastance,
-      -312058      => :resistance,
-      -312038      => :inductance,
-      -152040      => :magnetism,
-      -152038      => :magnetism,
-      -152058      => :potential,
-      -7997        => :specific_volume,
-      -79          => :snap,
-      -59          => :jolt,
-      -39          => :acceleration,
-      -38          => :radiation,
-      -20          => :frequency,
-      -19          => :speed,
-      -18          => :viscosity,
-      -17          => :volumetric_flow,
-      -1           => :wavenumber,
-      0            => :unitless,
-      1            => :length,
-      2            => :area,
-      3            => :volume,
-      20           => :time,
-      400          => :temperature,
-      7941         => :yank,
-      7942         => :power,
-      7959         => :pressure,
-      7962         => :energy,
-      7979         => :viscosity,
-      7961         => :force,
-      7981         => :momentum,
-      7982         => :angular_momentum,
-      7997         => :density,
-      7998         => :area_density,
-      8000         => :mass,
-      152020       => :radiation_exposure,
-      159999       => :magnetism,
-      160000       => :current,
-      160020       => :charge,
-      312058       => :resistance,
-      312078       => :capacitance,
-      3199980      => :activity,
-      3199997      => :molar_concentration,
-      3200000      => :substance,
-      63999998     => :illuminance,
-      64000000     => :luminous_power,
-      1280000000   => :currency,
-      25600000000  => :memory,
-      511999999980 => :angular_velocity,
-      512000000000 => :angle
+    -312078      => :elastance,
+    -312058      => :resistance,
+    -312038      => :inductance,
+    -152040      => :magnetism,
+    -152038      => :magnetism,
+    -152058      => :potential,
+    -7997        => :specific_volume,
+    -79          => :snap,
+    -59          => :jolt,
+    -39          => :acceleration,
+    -38          => :radiation,
+    -20          => :frequency,
+    -19          => :speed,
+    -18          => :viscosity,
+    -17          => :volumetric_flow,
+    -1           => :wavenumber,
+    0            => :unitless,
+    1            => :length,
+    2            => :area,
+    3            => :volume,
+    20           => :time,
+    400          => :temperature,
+    7941         => :yank,
+    7942         => :power,
+    7959         => :pressure,
+    7962         => :energy,
+    7979         => :viscosity,
+    7961         => :force,
+    7981         => :momentum,
+    7982         => :angular_momentum,
+    7997         => :density,
+    7998         => :area_density,
+    8000         => :mass,
+    152020       => :radiation_exposure,
+    159999       => :magnetism,
+    160000       => :current,
+    160020       => :charge,
+    312058       => :resistance,
+    312078       => :capacitance,
+    3199980      => :activity,
+    3199997      => :molar_concentration,
+    3200000      => :substance,
+    63999998     => :illuminance,
+    64000000     => :luminous_power,
+    1280000000   => :currency,
+    25600000000  => :memory,
+    511999999980 => :angular_velocity,
+    512000000000 => :angle
   }
   @@cached_units    = { }
   @@base_unit_cache = { }
@@ -145,16 +145,12 @@ class Unit < Numeric
     return true
   end
 
-
-
-
   # determine if a unit is already defined
   # @param [String] unit
   # @return [Boolean]
   def self.defined?(unit)
     return @@unit_values.keys.include?("<#{unit}>")
   end
-
 
   # return the unit definition for a unit
   # @param [String] unit
@@ -164,13 +160,11 @@ class Unit < Numeric
     return @@definitions[unit]
   end
 
-
   # return a list of all defined units
   # @return [Array]
   def self.definitions
     return @@definitions
   end
-
 
   # @param  [Unit::Definition|String] unit_definition
   # @param  [Block] block
@@ -432,8 +426,8 @@ class Unit < Numeric
   def is_base?
     return @is_base if defined? @is_base
     @is_base = (@numerator + @denominator).compact.uniq.
-        map { |unit| Unit.definition(unit) }.
-        all? { |element| element.unity? || element.base? }
+      map { |unit| Unit.definition(unit) }.
+      all? { |element| element.unity? || element.base? }
   end
 
   alias :base? :is_base?
@@ -528,28 +522,28 @@ class Unit < Numeric
           out    = "#{(ounces / 16).truncate} lbs, #{(ounces % 16).round} oz"
         when String
           out = case target_units
-                  when /(%[\-+\.\w#]+)\s*(.+)*/ #format string like '%0.2f in'
-                    begin
-                      if $2 #unit specified, need to convert
-                        self.convert_to($2).to_s($1)
-                      else
-                        "#{$1 % @scalar} #{$2 || self.units}".strip
-                      end
-                    rescue # parse it like a strftime format string
-                      (DateTime.new(0) + self).strftime(target_units)
-                    end
-                  when /(\S+)/ #unit only 'mm' or '1/mm'
-                    self.convert_to($1).to_s
-                  else
-                    raise "unhandled case"
+            when /(%[\-+\.\w#]+)\s*(.+)*/ #format string like '%0.2f in'
+              begin
+                if $2 #unit specified, need to convert
+                  self.convert_to($2).to_s($1)
+                else
+                  "#{$1 % @scalar} #{$2 || self.units}".strip
                 end
+              rescue # parse it like a strftime format string
+                (DateTime.new(0) + self).strftime(target_units)
+              end
+            when /(\S+)/ #unit only 'mm' or '1/mm'
+              self.convert_to($1).to_s
+            else
+              raise "unhandled case"
+          end
         else
           out = case @scalar
-                  when Rational
-                    "#{@scalar} #{self.units}"
-                  else
-                    "#{'%g' % @scalar} #{self.units}"
-                end.strip
+            when Rational
+              "#{@scalar} #{self.units}"
+            else
+              "#{'%g' % @scalar} #{self.units}"
+          end.strip
       end
       @output[target_units] = out
       out
@@ -749,13 +743,13 @@ class Unit < Numeric
                          :numerator   => KELVIN,
                          :denominator => UNITY_ARRAY,
                          :signature   => @signature).
-                    convert_to(self.temperature_scale)
+                  convert_to(self.temperature_scale)
               when self.is_temperature?
                 Unit.new(:scalar      => (self.base_scalar - other.base_scalar),
                          :numerator   => [Unit.definition('tempK').name],
                          :denominator => UNITY_ARRAY,
                          :signature   => @signature).
-                    convert_to(self)
+                  convert_to(self)
               when other.is_temperature?
                 raise ArgumentError, "Cannot subtract a temperature from a differential degree unit"
               else
@@ -989,7 +983,7 @@ class Unit < Numeric
       _denominator2 = target.denominator.map { |x| @@prefix_values[x] ? @@prefix_values[x] : x }.map { |x| x.kind_of?(Numeric) ? x : @@unit_values[x][:scalar] }.compact
 
       q = @scalar * ((_numerator1 + _denominator2).inject(1) { |product, n| product*n }) /
-          ((_numerator2 + _denominator1).inject(1) { |product, n| product*n })
+        ((_numerator2 + _denominator1).inject(1) { |product, n| product*n })
       Unit.new(:scalar      => q,
                :numerator   => target.numerator,
                :denominator => target.denominator,
@@ -1075,11 +1069,11 @@ class Unit < Numeric
     end
 
     on  = output_numerator.uniq.
-        map { |x| [x, output_numerator.count(x)] }.
-        map { |element, power| ("#{element}".strip + (power > 1 ? "^#{power}" : '')) }
+      map { |x| [x, output_numerator.count(x)] }.
+      map { |element, power| ("#{element}".strip + (power > 1 ? "^#{power}" : '')) }
     od  = output_denominator.uniq.
-        map { |x| [x, output_denominator.count(x)] }.
-        map { |element, power| ("#{element}".strip + (power > 1 ? "^#{power}" : '')) }
+      map { |x| [x, output_denominator.count(x)] }.
+      map { |element, power| ("#{element}".strip + (power > 1 ? "^#{power}" : '')) }
     out = "#{on.join('*')}#{od.empty? ? '' : '/' + od.join('*')}".strip
     @unit_name = out unless self.kind == :temperature
     out
@@ -1383,11 +1377,11 @@ class Unit < Numeric
       unit_string = "#{$1} USD"
     end
     unit_string.gsub!("\xC2\xB0".force_encoding('utf-8'), 'deg') unless RUBY_VERSION < '1.9'
-    
-    unit_string.gsub!(/%/,'percent')
-    unit_string.gsub!(/'/,'feet')
-    unit_string.gsub!(/"/,'inch')
-    unit_string.gsub!(/#/,'pound')
+
+    unit_string.gsub!(/%/, 'percent')
+    unit_string.gsub!(/'/, 'feet')
+    unit_string.gsub!(/"/, 'inch')
+    unit_string.gsub!(/#/, 'pound')
 
     #:nocov:
     #:nocov_19:
@@ -1431,9 +1425,9 @@ class Unit < Numeric
       hours, minutes, seconds, microseconds = unit_string.scan(TIME_REGEX)[0]
       raise ArgumentError, "Invalid Duration" if [hours, minutes, seconds, microseconds].all? { |x| x.nil? }
       result = "#{hours || 0} h".unit +
-          "#{minutes || 0} minutes".unit +
-          "#{seconds || 0} seconds".unit +
-          "#{microseconds || 0} usec".unit
+        "#{minutes || 0} minutes".unit +
+        "#{seconds || 0} seconds".unit +
+        "#{microseconds || 0} usec".unit
       copy(result)
       return
     end
@@ -1455,7 +1449,7 @@ class Unit < Numeric
       return
     end
 
-    # more than one per.  I.e., "1 m/s/s"
+                                                                  # more than one per.  I.e., "1 m/s/s"
     raise(ArgumentError, "'#{passed_unit_string}' Unit not recognized") if unit_string.count('/') > 1
     raise(ArgumentError, "'#{passed_unit_string}' Unit not recognized") if unit_string.scan(/\s[02-9]/).size > 0
     @scalar, top, bottom = unit_string.scan(UNIT_STRING_REGEX)[0] #parse the string into parts
@@ -1496,7 +1490,7 @@ class Unit < Numeric
     @denominator = UNITY_ARRAY if @denominator.empty?
     self
   end
-  
+
   # return an array of base units
   # @return [Array]
   def self.base_units
@@ -1518,25 +1512,25 @@ class Unit < Numeric
     complex   = %r{#{sci}{2,2}i}
     anynumber = %r{(?:(#{complex}|#{rational}|#{sci})\b)?\s?([\D].*)?}
     num, unit = string.scan(anynumber).first
-    
+
     return [case num
-      when NilClass
-        1
-      when complex
-        if num.respond_to?(:to_c)
-          num.to_c
-        else
-          #:nocov_19:
-          Complex(*num.scan(/(#{sci})(#{sci})i/).flatten.map {|n| n.to_i})
-          #:nocov_19:
-        end
-      when rational
-        Rational(*num.split("/").map {|x| x.to_i})
-      else
-        num.to_f
-    end, unit.to_s.strip]
+              when NilClass
+                1
+              when complex
+                if num.respond_to?(:to_c)
+                  num.to_c
+                else
+                  #:nocov_19:
+                  Complex(*num.scan(/(#{sci})(#{sci})i/).flatten.map { |n| n.to_i })
+                  #:nocov_19:
+                end
+              when rational
+                Rational(*num.split("/").map { |x| x.to_i })
+              else
+                num.to_f
+            end, unit.to_s.strip]
   end
-  
+
   # return a fragment of a regex to be used for matching units or reconstruct it if hasn't been used yet.
   # Unit names are reverse sorted by length so the regexp matcher will prefer longer and more specific names
   # @return [String]
@@ -1544,7 +1538,7 @@ class Unit < Numeric
   def self.unit_regex
     @@unit_regex ||= @@unit_map.keys.sort_by { |unit_name| [unit_name.length, unit_name] }.reverse.join('|')
   end
-  
+
   # return a regex used to match units
   # @return [RegExp]
   # @private
@@ -1557,31 +1551,31 @@ class Unit < Numeric
   # @private
   def self.prefix_regex
     return @@prefix_regex ||= @@prefix_map.keys.
-                                sort_by { |prefix| [prefix.length, prefix] }.
-                                reverse.
-                                join('|')
+      sort_by { |prefix| [prefix.length, prefix] }.
+      reverse.
+      join('|')
   end
 
   def self.degree_regex
     temp_units = Unit.definitions.select { |_, definition| definition.kind == :temperature }
     aliases    = temp_units.map { |_, definition| definition.aliases }.
-        flatten.
-        compact.
-        sort_by { |name| [name.length, name] }.
-        reverse
+      flatten.
+      compact.
+      sort_by { |name| [name.length, name] }.
+      reverse
     aliases.empty? ? '(?!x)x' : aliases.join('|')
   end
-  
+
   def self.temp_regex
     Unit.definitions.
-        reject { |_, defn| defn.temperature_scale.nil? }.
-        map { |_, temp| temp.aliases }.
-        flatten.
-        sort_by { |name| [name.length, name] }.
-        reverse.
-        join('|')
+      reject { |_, defn| defn.temperature_scale.nil? }.
+      map { |_, temp| temp.aliases }.
+      flatten.
+      sort_by { |name| [name.length, name] }.
+      reverse.
+      join('|')
   end
-  
+
   # inject a definition into the internal array and set it up for use
   # @private
   def self.use_definition(definition)
