@@ -899,7 +899,7 @@ class Unit < Numeric
   # if n < 0, returns 1/unit^(1/n)
   # @param [Integer] n
   # @return [Unit]
-  # @raise [ArgumentError] when attemptint to take the root of a temperature
+  # @raise [ArgumentError] when attempting to take the root of a temperature
   # @raise [ArgumentError] when n is not an integer
   # @raise [ArgumentError] when n is 0
   def root(n)
