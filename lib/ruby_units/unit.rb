@@ -1,3 +1,4 @@
+# encoding: utf-8
 require 'date'
 if RUBY_VERSION < "1.9"
   # :nocov_19:
@@ -1106,10 +1107,18 @@ class Unit < Numeric
     Unit.new(@scalar.floor, @numerator, @denominator)
   end
 
-  # @return [Numeric,Unit]
-  def round(ndigits = 0)
-    return @scalar.round(ndigits) if self.unitless?
-    return Unit.new(@scalar.round(ndigits), @numerator, @denominator)
+  if RUBY_VERSION < '1.9'
+    # @return [Numeric,Unit]
+    def round
+      return @scalar.round if self.unitless?
+      return Unit.new(@scalar.round, @numerator, @denominator)
+    end
+  else
+    # @return [Numeric,Unit]
+    def round(ndigits = 0)
+      return @scalar.round(ndigits) if self.unitless?
+      return Unit.new(@scalar.round(ndigits), @numerator, @denominator)
+    end
   end
 
   # @return [Numeric, Unit]
@@ -1376,7 +1385,12 @@ class Unit < Numeric
     if unit_string =~ /\$\s*(#{NUMBER_REGEX})/
       unit_string = "#{$1} USD"
     end
-    unit_string.gsub!("\xC2\xB0".force_encoding('utf-8'), 'deg') unless RUBY_VERSION < '1.9'
+    unit_string.gsub!("\u00b0".force_encoding('utf-8'), 'deg') if unit_string.encoding == Encoding::UTF_8 && RUBY_VERSION > '1.8'
+
+    unit_string.gsub!(/%/,'percent')
+    unit_string.gsub!(/'/,'feet')
+    unit_string.gsub!(/"/,'inch')
+    unit_string.gsub!(/#/,'pound')
 
     unit_string.gsub!(/%/, 'percent')
     unit_string.gsub!(/'/, 'feet')
