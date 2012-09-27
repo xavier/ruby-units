@@ -342,6 +342,9 @@ class Unit < Numeric
     end
 
     case options[0]
+      when Unit
+        copy(options[0])
+        return
       when Hash
         @scalar      = options[0][:scalar] || 1
         @numerator   = options[0][:numerator] || UNITY_ARRAY
@@ -355,11 +358,11 @@ class Unit < Numeric
         @numerator = @denominator = UNITY_ARRAY
       when Time
         @scalar      = options[0].to_f
-        @numerator   = %w(<second>)
+        @numerator   = ['<second>']
         @denominator = UNITY_ARRAY
       when DateTime, Date
         @scalar      = options[0].ajd
-        @numerator   = %w(<day>)
+        @numerator   = ['<day>']
         @denominator = UNITY_ARRAY
       when /^\s*$/
         raise ArgumentError, "No Unit Specified"
