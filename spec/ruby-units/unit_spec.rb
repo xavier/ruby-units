@@ -507,7 +507,14 @@ describe "Create some simple units" do
     its(:kind)    {should == :speed}
     its(:units)   {should == "m/s"}
   end
-  
+
+  #create with a Hash
+  describe Unit(:scalar => 1.0, :numerator => 'in^2', :denominator=>'pound') do
+    its(:units) { should == "in^2/lbs"}
+    its(:scalar) { should == 1.0}
+    its(:scalar) { should be_a(Float)}
+  end
+
 end
 
 describe "Unit handles attempts to create bad units" do

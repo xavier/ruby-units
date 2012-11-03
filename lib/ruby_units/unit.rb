@@ -350,6 +350,12 @@ class Unit < Numeric
         @numerator   = options[0][:numerator] || UNITY_ARRAY
         @denominator = options[0][:denominator] || UNITY_ARRAY
         @signature   = options[0][:signature]
+        if @numerator.is_a?(String)
+          @numerator = Unit(@numerator).numerator
+        end
+        if @denominator.is_a?(String)
+          @denominator = Unit(@denominator).numerator
+        end
       when Array
         initialize(*options[0])
         return
