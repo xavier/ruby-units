@@ -715,13 +715,22 @@ class Unit < Numeric
             raise ArgumentError, "Cannot add two temperatures" if ([self, other].all? { |x| x.is_temperature? })
             if [self, other].any? { |x| x.is_temperature? }
               if self.is_temperature?
-                Unit.new(:scalar => (self.scalar + other.convert_to(self.temperature_scale).scalar), :numerator => @numerator, :denominator => @denominator, :signature => @signature)
+                Unit.new(:scalar      => (self.scalar + other.convert_to(self.temperature_scale).scalar),
+                         :numerator   => @numerator,
+                         :denominator => @denominator,
+                         :signature   => @signature)
               else
-                Unit.new(:scalar => (other.scalar + self.convert_to(other.temperature_scale).scalar), :numerator => other.numerator, :denominator => other.denominator, :signature => other.signature)
+                Unit.new(:scalar      => (other.scalar + self.convert_to(other.temperature_scale).scalar),
+                         :numerator   => other.numerator,
+                         :denominator => other.denominator,
+                         :signature   => other.signature)
               end
             else
               @q ||= ((@@cached_units[self.units].scalar / @@cached_units[self.units].base_scalar) rescue (self.units.unit.to_base.scalar))
-              Unit.new(:scalar => (self.base_scalar + other.base_scalar)*@q, :numerator => @numerator, :denominator => @denominator, :signature => @signature)
+              Unit.new(:scalar      => (self.base_scalar + other.base_scalar)*@q,
+                       :numerator   => @numerator,
+                       :denominator => @denominator,
+                       :signature   => @signature)
             end
           else
             raise ArgumentError, "Incompatible Units ('#{self}' not compatible with '#{other}')"
@@ -1367,6 +1376,8 @@ class Unit < Numeric
           value.times { num << key }
         when value < 0
           value.abs.times { den << key }
+        else
+          # do nothing
       end
     end
     num = UNITY_ARRAY if num.empty?
