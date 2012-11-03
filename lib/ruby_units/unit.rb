@@ -1,3 +1,4 @@
+# encoding: utf-8
 require 'date'
 if RUBY_VERSION < "1.9"
   # :nocov_19:
@@ -21,7 +22,7 @@ end
 # in the United States. If your favorite units are not listed here, file an issue on github.
 #
 # To add or override a unit definition, add a code block like this..
-# @example Define a new unit 
+# @example Define a new unit
 #  Unit.define("foobar") do |unit|
 #    unit.aliases    = %w{foo fb foo-bar}
 #    unit.definition = Unit("1 baz")
@@ -140,9 +141,12 @@ class Unit < Numeric
       self.use_definition(definition)
     end
 
+
     Unit.new(1)
     return true
   end
+
+
 
 
   # determine if a unit is already defined
@@ -152,6 +156,7 @@ class Unit < Numeric
     return @@unit_values.keys.include?("<#{unit}>")
   end
 
+
   # return the unit definition for a unit
   # @param [String] unit
   # @return [Unit::Definition, nil]
@@ -160,11 +165,13 @@ class Unit < Numeric
     return @@definitions[unit]
   end
 
+
   # return a list of all defined units
   # @return [Array]
   def self.definitions
     return @@definitions
   end
+
 
   # @param  [Unit::Definition|String] unit_definition
   # @param  [Block] block
@@ -335,6 +342,9 @@ class Unit < Numeric
     end
 
     case options[0]
+      when Unit
+        copy(options[0])
+        return
       when Hash
         @scalar      = options[0][:scalar] || 1
         @numerator   = options[0][:numerator] || UNITY_ARRAY
@@ -348,11 +358,11 @@ class Unit < Numeric
         @numerator = @denominator = UNITY_ARRAY
       when Time
         @scalar      = options[0].to_f
-        @numerator   = %w(<second>)
+        @numerator   = ['<second>']
         @denominator = UNITY_ARRAY
       when DateTime, Date
         @scalar      = options[0].ajd
-        @numerator   = %w(<day>)
+        @numerator   = ['<day>']
         @denominator = UNITY_ARRAY
       when /^\s*$/
         raise ArgumentError, "No Unit Specified"
@@ -1037,6 +1047,12 @@ class Unit < Numeric
     raise RuntimeError, "Cannot convert '#{self.to_s}' to Rational unless unitless.  Use Unit#scalar"
   end
 
+  # Returns string formatted for json
+  # @return [String]
+  def as_json(*args)
+    to_s
+  end
+
   # returns the 'unit' part of the Unit object without the scalar
   # @return [String]
   def units
@@ -1109,10 +1125,18 @@ class Unit < Numeric
     Unit.new(@scalar.floor, @numerator, @denominator)
   end
 
-  # @return [Numeric,Unit]
-  def round
-    return @scalar.round if self.unitless?
-    Unit.new(@scalar.round, @numerator, @denominator)
+  if RUBY_VERSION < '1.9'
+    # @return [Numeric,Unit]
+    def round
+      return @scalar.round if self.unitless?
+      return Unit.new(@scalar.round, @numerator, @denominator)
+    end
+  else
+    # @return [Numeric,Unit]
+    def round(ndigits = 0)
+      return @scalar.round(ndigits) if self.unitless?
+      return Unit.new(@scalar.round(ndigits), @numerator, @denominator)
+    end
   end
 
   # @return [Numeric, Unit]
@@ -1381,10 +1405,12 @@ class Unit < Numeric
     if unit_string =~ /\$\s*(#{NUMBER_REGEX})/
       unit_string = "#{$1} USD"
     end
-    unit_string.gsub!(/%/, 'percent')
-    unit_string.gsub!(/'/, 'feet')
-    unit_string.gsub!(/"/, 'inch')
-    unit_string.gsub!(/#/, 'pound')
+    unit_string.gsub!("\u00b0".force_encoding('utf-8'), 'deg') if unit_string.encoding == Encoding::UTF_8 && RUBY_VERSION > '1.8'
+
+    unit_string.gsub!(/%/,'percent')
+    unit_string.gsub!(/'/,'feet')
+    unit_string.gsub!(/"/,'inch')
+    unit_string.gsub!(/#/,'pound')
 
     #:nocov:
     #:nocov_19:
@@ -1493,7 +1519,7 @@ class Unit < Numeric
     @denominator = UNITY_ARRAY if @denominator.empty?
     self
   end
-
+  
   # return an array of base units
   # @return [Array]
   def self.base_units
@@ -1515,25 +1541,25 @@ class Unit < Numeric
     complex   = %r{#{sci}{2,2}i}
     anynumber = %r{(?:(#{complex}|#{rational}|#{sci})\b)?\s?([\D].*)?}
     num, unit = string.scan(anynumber).first
-
-    return [     case num
-                   when NilClass
-                     1
-                   when complex
-                     if num.respond_to?(:to_c)
-                       num.to_c
-                     else
-                       #:nocov_19:
-                       Complex(*num.scan(/(#{sci})(#{sci})i/).flatten.map { |n| n.to_i })
-                       #:nocov_19:
-                     end
-                   when rational
-                     Rational(*num.split("/").map { |x| x.to_i })
-                   else
-                     num.to_f
-                 end, unit.to_s.strip]
+    
+    return [case num
+      when NilClass
+        1
+      when complex
+        if num.respond_to?(:to_c)
+          num.to_c
+        else
+          #:nocov_19:
+          Complex(*num.scan(/(#{sci})(#{sci})i/).flatten.map {|n| n.to_i})
+          #:nocov_19:
+        end
+      when rational
+        Rational(*num.split("/").map {|x| x.to_i})
+      else
+        num.to_f
+    end, unit.to_s.strip]
   end
-
+  
   # return a fragment of a regex to be used for matching units or reconstruct it if hasn't been used yet.
   # Unit names are reverse sorted by length so the regexp matcher will prefer longer and more specific names
   # @return [String]
@@ -1541,7 +1567,7 @@ class Unit < Numeric
   def self.unit_regex
     @@unit_regex ||= @@unit_map.keys.sort_by { |unit_name| [unit_name.length, unit_name] }.reverse.join('|')
   end
-
+  
   # return a regex used to match units
   # @return [RegExp]
   # @private
@@ -1568,7 +1594,7 @@ class Unit < Numeric
         reverse
     aliases.empty? ? '(?!x)x' : aliases.join('|')
   end
-
+  
   def self.temp_regex
     Unit.definitions.
         reject { |_, defn| defn.temperature_scale.nil? }.
@@ -1578,7 +1604,7 @@ class Unit < Numeric
         reverse.
         join('|')
   end
-
+  
   # inject a definition into the internal array and set it up for use
   # @private
   def self.use_definition(definition)
