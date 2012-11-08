@@ -515,6 +515,11 @@ describe "Create some simple units" do
     its(:scalar) { should be_a(Float)}
   end
 
+  describe Unit(:scalar => 1.0, :numerator => %w(m), :denominator => %w(s s)) do
+    its(:units) { should == "m/s^2"}
+    its(:scalar) { should == 1.0}
+  end
+
 end
 
 describe "Unit handles attempts to create bad units" do
